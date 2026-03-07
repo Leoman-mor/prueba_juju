@@ -91,8 +91,25 @@ def load_css():
                 100% { transform: rotate(215deg) translateX(-1000px); opacity: 0; }
             }
 
-            /* --- PREMIUM CARD STYLE (No more radar!) --- */
-            /* Cards are STATIC. Only the border light travels. */
+            /* --- PRODUCT CARD (st.form wrapper) --- */
+            [data-testid="stForm"] {
+                background: white;
+                border-radius: var(--radius) !important;
+                border: 1px solid rgba(248,167,27,0.2) !important;
+                box-shadow: var(--shadow-md) !important;
+                padding: 8px !important;
+                margin-bottom: 20px;
+                transition: transform 0.15s, box-shadow 0.15s;
+            }
+            [data-testid="stForm"]:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-lg) !important;
+            }
+            /* Remove the default Streamlit form border */
+            [data-testid="stForm"] > div:first-child {
+                border: none !important;
+            }
+            /* --- PREMIUM CARD STYLE (static card, animated border) --- */
             .magic-card {
                 position: relative;
                 overflow: hidden;
@@ -119,6 +136,24 @@ def load_css():
                 );
                 animation: beam-travel 4s linear infinite;
                 z-index: 0;
+            }
+            /* White overlay sits ON TOP of the rotating element */
+            .magic-card::after {
+                content: '';
+                position: absolute;
+                inset: 2px;
+                background: white;
+                border-radius: calc(var(--radius) - 2px);
+                z-index: 1;
+            }
+            /* Card content must be above the white overlay */
+            .magic-card > * {
+                position: relative;
+                z-index: 2;
+            }
+            @keyframes beam-travel {
+                from { transform: translate(-50%, -50%) rotate(0deg); }
+                to { transform: translate(-50%, -50%) rotate(360deg); }
             }
             /* White overlay sits ON TOP of the rotating element */
             .magic-card::after {
@@ -498,9 +533,10 @@ def view_user_catalog():
     # --- Sticky cart summary bar ---
     if st.session_state.cart:
         ta, tb, tt = calcular_totales_carrito()
+        tt_cop = tt // 10  # 10 pts = $1 COP
         cc1, cc2, cc3 = st.columns([3, 2, 2])
         with cc1:
-            st.markdown(f"<div style='background:rgba(248,167,27,0.1);border:1px solid rgba(248,167,27,0.3);border-radius:12px;padding:10px 18px;font-weight:700;color:#F8A71B;'>🛒 {len(st.session_state.cart)} producto(s) &nbsp;—&nbsp; {tt:,} pts</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='background:rgba(248,167,27,0.1);border:1px solid rgba(248,167,27,0.3);border-radius:12px;padding:10px 18px;font-weight:700;color:#F8A71B;'>🛒 {len(st.session_state.cart)} producto(s) &nbsp;—&nbsp; {tt:,} pts <span style='color:#aaa;font-weight:500;font-size:0.85rem;'>≈ ${tt_cop:,} COP</span></div>", unsafe_allow_html=True)
         with cc3:
             if st.button("Ver Carrito →", use_container_width=True, type="primary"):
                 st.session_state.navigation = "Carrito"
@@ -511,32 +547,41 @@ def view_user_catalog():
     search = st.text_input("🔍 Buscar...", placeholder="\u00bfQu\u00e9 est\u00e1s buscando?")
     t1, t2, t3 = st.tabs(["✨ Todos", "💻 Tecnolog\u00eda", "🏟\ufe0f Bonos"])
     
-    cats = [None, "Tecnolog\u00eda (Tipo A)", "Bonos Digitales (Tipo B)"]
+    cats = [None, "Tipo A (Tecnolog\u00eda)", "Tipo B (Bonos Digitales)"]
     for i, tab in enumerate([t1, t2, t3]):
         with tab:
-            prods = st.session_state.products
-            if cats[i]: prods = [p for p in prods if p['tipo'] == cats[i]]
+            prods = list(st.session_state.products)
+            cat_filter = cats[i]
+            if cat_filter is not None:
+                prods = [p for p in prods if cat_filter in str(p.get('tipo',''))]
             if search: prods = [p for p in prods if search.lower() in p['nombre'].lower()]
             
-            if not prods: st.info("No hay productos."); continue
+            if not prods:
+                st.info("No hay productos en esta categor\u00eda.")
+                continue
                 
             cols = st.columns(3)
             for idx, p in enumerate(prods):
                 with cols[idx % 3]:
-                    # Card body (static, no rotating) with inline price + add button
-                    st.markdown(f"""
-                    <div class="magic-card" style="padding:24px;margin-bottom:16px;">
-                        <div style="font-size:3rem;margin-bottom:10px;">{p['icono']}</div>
-                        <div class="product-name">{p['nombre']}</div>
-                        <div class="product-description">{p.get('descripcion','Detalle no disponible.')}</div>
-                        <div class="product-add-row">
-                            <div class="product-price" style="margin:0;">{p['precio']:,} pts</div>
+                    peso_val = p['precio'] // 10
+                    # st.form wraps HTML + button in ONE proper DOM container
+                    with st.form(key=f"prod_{i}_{idx}", border=False):
+                        st.markdown(f"""
+                        <div style="padding:8px;">
+                            <div style="font-size:2.8rem;margin-bottom:8px;">{p['icono']}</div>
+                            <div class="product-name">{p['nombre']}</div>
+                            <div class="product-description">{p.get('descripcion','Detalle no disponible.')}</div>
+                            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;">
+                                <div>
+                                    <div class="product-price" style="margin:0;">{p['precio']:,} pts</div>
+                                    <div style="color:#aaa;font-size:0.8rem;">${peso_val:,} COP</div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    if st.button("A\u00f1adir \u2192", key=f"add_{i}_{idx}", use_container_width=True):
-                        add_to_cart(p)
-                        st.rerun()
+                        """, unsafe_allow_html=True)
+                        if st.form_submit_button("A\u00f1adir \u2192", use_container_width=True):
+                            add_to_cart(p)
+                            st.rerun()
 
 
 def view_cart_checkout():
