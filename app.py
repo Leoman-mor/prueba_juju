@@ -50,7 +50,9 @@ def load_css():
             
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            header [data-testid="stAppDeploy"] {display: none;}
+            /* Hide Streamlit's native top bar completely */
+            header {visibility: hidden !important; height: 0 !important;}
+            [data-testid="stHeader"] {visibility: hidden !important; height: 0 !important;}
             [data-testid="stSidebarNav"] {display: none;}
             
             .block-container {
@@ -89,34 +91,66 @@ def load_css():
                 100% { transform: rotate(215deg) translateX(-1000px); opacity: 0; }
             }
 
-            /* --- MAGIC UI: BORDER BEAM (Robust Version) --- */
+            /* --- PREMIUM CARD STYLE (No more radar!) --- */
+            /* Cards are STATIC. Only the border light travels. */
             .magic-card {
                 position: relative;
-                padding: 4px;
+                overflow: hidden;
                 border-radius: var(--radius);
-                background: #f0f0f0; /* Fallback */
-                background: conic-gradient(from 0deg, transparent, transparent, var(--primary));
-                animation: rotate-beam 4s linear infinite;
-                box-shadow: var(--shadow-md);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-            .magic-inner {
                 background: white;
-                border-radius: calc(var(--radius) - 4px);
+                border: 1px solid rgba(248, 167, 27, 0.25);
+                box-shadow: var(--shadow-md);
                 padding: 40px;
-                width: 100%;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
             }
-            @keyframes rotate-beam {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
+            /* The rotating pseudo-element stays BEHIND the white background */
+            .magic-card::before {
+                content: '';
+                position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%) rotate(0deg);
+                width: 150%; height: 150%;
+                background: conic-gradient(
+                    from 0deg,
+                    transparent 0deg,
+                    transparent 160deg,
+                    var(--primary) 180deg,
+                    transparent 200deg,
+                    transparent 360deg
+                );
+                animation: beam-travel 4s linear infinite;
+                z-index: 0;
+            }
+            /* White overlay sits ON TOP of the rotating element */
+            .magic-card::after {
+                content: '';
+                position: absolute;
+                inset: 2px;
+                background: white;
+                border-radius: calc(var(--radius) - 2px);
+                z-index: 1;
+            }
+            /* Card content must be above the white overlay */
+            .magic-card > * {
+                position: relative;
+                z-index: 2;
+            }
+            @keyframes beam-travel {
+                from { transform: translate(-50%, -50%) rotate(0deg); }
+                to { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+            /* Simpler non-animated card for admin metrics */
+            .metric-card {
+                background: white;
+                border-radius: 20px;
+                padding: 28px;
+                text-align: center;
+                border: 1px solid #f5f5f5;
+                box-shadow: var(--shadow-md);
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .metric-card:hover {
+                transform: translateY(-3px);
+                box-shadow: var(--shadow-lg);
             }
 
             /* --- MAGIC UI: SHINY BUTTON --- */
@@ -209,20 +243,64 @@ def load_css():
                 padding: 12px 15px !important; font-weight: 500 !important;
             }
 
-            /* --- ADMIN BENTO --- */
-            .admin-grid {
-                display: grid;
-                grid-template-columns: 2fr 1fr;
-                gap: 25px;
-            }
-            .metric-card-magic {
+            /* --- LOGIN FORM CARD --- */
+            /* Scoped only to the login form, not to payment form */
+            [data-testid="stForm"].login-form-card {
                 position: relative;
-                padding: 30px;
-                background: white;
-                border-radius: 24px;
-                text-align: center;
-                border: 1px solid #f0f0f0;
                 overflow: hidden;
+                border-radius: 20px !important;
+                border: 1px solid rgba(248, 167, 27, 0.3) !important;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
+                background: white !important;
+                padding: 10px !important;
+            }
+            /* Since we can't add class to stForm, scope by position/parent */
+            /* We use a wrapper div instead */
+            .login-card-wrapper {
+                position: relative;
+                overflow: hidden;
+                border-radius: 20px;
+                border: 1px solid rgba(248, 167, 27, 0.3);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+                background: white;
+                padding: 30px;
+            }
+            .login-card-wrapper::before {
+                content: '';
+                position: absolute;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%) rotate(0deg);
+                width: 150%; height: 150%;
+                background: conic-gradient(
+                    from 0deg,
+                    transparent 0deg,
+                    transparent 160deg,
+                    var(--primary) 180deg,
+                    transparent 200deg,
+                    transparent 360deg
+                );
+                animation: beam-travel 4s linear infinite;
+                z-index: 0;
+            }
+            .login-card-wrapper::after {
+                content: '';
+                position: absolute;
+                inset: 3px;
+                background: white;
+                border-radius: 18px;
+                z-index: 1;
+            }
+            .login-card-wrapper > * {
+                position: relative;
+                z-index: 2;
+            }
+            /* Product card add row */
+            .product-add-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-top: 8px;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -288,111 +366,119 @@ def calcular_totales_carrito():
     return total_a, total_b, total_a + total_b
 
 # --- Views ---
-def show_logo():
+def show_logo(centered=True):
+    """Show the real company logo from the inspiración folder."""
+    import os
+    logo_path = os.path.join("inspiraci\u00f3n", "Logo empresa Alpha.png")
     try:
-        img = Image.open("logo_alpha.png")
-        st.image(img, width=180)
+        img = Image.open(logo_path)
+        if centered:
+            _, lc, _ = st.columns([1, 2, 1])
+            with lc:
+                st.image(img, width=180)
+        else:
+            st.image(img, width=140)
     except:
-        st.markdown("<h1 style='color: #F8A71B; margin: 0;'>ALPHA</h1>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:#F8A71B;margin:0;font-weight:900;'>α ALPHA</h2>", unsafe_allow_html=True)
         st.caption("PREMIUM REWARDS")
 
 def view_login():
-    # Inject Meteors Background
+    # Dark animated background
     st.markdown("""
         <div class="meteors-container">
-            <div class="meteor" style="top: 10%; left: 80%; animation-delay: 0s;"></div>
-            <div class="meteor" style="top: 30%; left: 90%; animation-delay: 2s;"></div>
-            <div class="meteor" style="top: 50%; left: 70%; animation-delay: 1s;"></div>
-            <div class="meteor" style="top: 70%; left: 85%; animation-delay: 4s;"></div>
+            <div class="meteor" style="top:10%;left:80%;animation-delay:0s"></div>
+            <div class="meteor" style="top:30%;left:90%;animation-delay:2s"></div>
+            <div class="meteor" style="top:55%;left:70%;animation-delay:1s"></div>
+            <div class="meteor" style="top:75%;left:85%;animation-delay:4s"></div>
         </div>
     """, unsafe_allow_html=True)
     
-    # Grid for centering
     _, col, _ = st.columns([1, 1.2, 1])
     with col:
-        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.markdown("<div style='height:80px'></div>", unsafe_allow_html=True)
+        st.markdown('<div class="login-card-wrapper">', unsafe_allow_html=True)
+        show_logo(centered=False)
+        st.markdown(
+            "<h3 style='margin:16px 0 4px; text-align:center;'>Bienvenido</h3>"
+            "<p style='color:#888; font-size:0.92rem; margin-bottom:8px; text-align:center;'>"
+            "Ingresa tu cup\u00f3n para acceder al portal.</p>",
+            unsafe_allow_html=True
+        )
+        coupon = st.text_input("Cup\u00f3n", placeholder="X-XXXX-XXXX", label_visibility="collapsed")
+        submitted = st.button("ACCEDER \u2192", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
         
-        # ONE SINGLE CONTAINER for everything
-        st.markdown('<div class="magic-card"><div class="magic-inner">', unsafe_allow_html=True)
-        
-        show_logo()
-        st.markdown("<br><h3 style='margin-bottom:0;'>Bienvenido</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='color: #888; font-size:0.92rem; margin-bottom:25px;'>Ingresa tu cupón para acceder al portal.</p>", unsafe_allow_html=True)
-        
-        coupon = st.text_input("Cupón", placeholder="X-XXXX-XXXX", label_visibility="collapsed")
-        
-        st.markdown("<div style='margin-top:15px;'>", unsafe_allow_html=True)
-        submit_btn = st.button("ACCEDER →", use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        
-        if coupon or submit_btn:
-            if submit_btn and not coupon:
-                st.error("Ingresa un cupón")
-            elif coupon:
-                if coupon.lower() == "admin":
-                    st.session_state.current_user_id = "admin"
-                    st.session_state.is_admin = True
-                    st.rerun()
-                else:
-                    uid = coupon.strip().replace(" ", "").upper()
-                    if uid not in st.session_state.users:
-                        st.session_state.users[uid] = {'nombre': f"Usuario {uid}", 'puntos': 15000}
-                        save_users_to_db()
-                    st.session_state.current_user_id = uid
-                    st.session_state.is_admin = False
-                    st.rerun()
-        st.markdown('</div></div>', unsafe_allow_html=True)
+        if submitted:
+            if not coupon:
+                st.error("Ingresa un cup\u00f3n")
+            elif coupon.lower() == "admin":
+                st.session_state.current_user_id = "admin"
+                st.session_state.is_admin = True
+                st.rerun()
+            else:
+                uid = coupon.strip().replace(" ", "").upper()
+                if uid not in st.session_state.users:
+                    st.session_state.users[uid] = {'nombre': f"Usuario {uid}", 'puntos': 15000}
+                    save_users_to_db()
+                st.session_state.current_user_id = uid
+                st.session_state.is_admin = False
+                st.rerun()
 
 def top_bar():
+    """Header usando solo columnas nativas de Streamlit. Sin HTML crudo."""
     is_admin = st.session_state.is_admin
-    user_title = "ADMIN" if is_admin else "ALPHA"
     
-    balance_pill = ""
-    if not is_admin:
-        try:
-            pts = get_current_user()["puntos"]
-            balance_pill = f'<div class="balance-pill">💰 Saldo: {pts:,} pts</div>'
-        except:
-            balance_pill = ""
-
-    # Clean header HTML - Zero stray divs
-    st.markdown(f'''
-        <div class="fixed-header">
-            <div class="header-container">
-                <div style="font-size: 1.5rem; font-weight: 800; letter-spacing: -1px; color: #1a1a1a;">{user_title}</div>
-                {balance_pill}
-                <div style="width: 120px;"></div>
-            </div>
-        </div>
-    ''', unsafe_allow_html=True)
+    c_logo, c_balance, c_btn = st.columns([2, 5, 2])
     
-    # Position SALIR button correctly using a cleaner overlay strategy
-    st.markdown("<div style='position: relative; top: -72px; height: 0; z-index: 1001;'>", unsafe_allow_html=True)
-    c1, c2 = st.columns([9.5, 1.5])
-    with c2:
-        if st.button("SALIR", key="global_logout_final_v4"):
+    with c_logo:
+        show_logo(centered=False)
+    
+    with c_balance:
+        if not is_admin:
+            try:
+                pts = get_current_user()["puntos"]
+                st.markdown(
+                    f"<div style='background:rgba(248,167,27,0.1);color:#F8A71B;padding:8px 20px;"
+                    f"border-radius:100px;font-weight:700;border:1px solid rgba(248,167,27,0.3);"
+                    f"font-size:0.95rem;text-align:center;margin-top:16px;'>💰 Saldo: {pts:,} pts</div>",
+                    unsafe_allow_html=True
+                )
+            except:
+                pass
+        else:
+            st.markdown("<div style='font-size:0.9rem;color:#888;font-weight:600;margin-top:20px;text-align:center;'>PANEL DE ADMINISTRACI\u00d3N</div>", unsafe_allow_html=True)
+    
+    with c_btn:
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        if st.button("Salir \u2192", key="topbar_logout", use_container_width=True):
             st.session_state.current_user_id = None
-            st.session_state.navigation = "Catálogo"
+            st.session_state.navigation = "Cat\u00e1logo"
             st.session_state.checkout_step = 0
             st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.markdown("<hr style='margin:6px 0 24px;border:none;border-top:1px solid #f0f0f0;'>", unsafe_allow_html=True)
 
 def view_admin_dashboard():
     top_bar()
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h2>Panel de Administración 💠</h2>", unsafe_allow_html=True)
+    st.subheader("Panel de Administración")
     
     u_count = len([k for k in st.session_state.users if k != "admin"])
     p_total = sum(u['puntos'] for k, u in st.session_state.users.items() if k != "admin")
+    pct = st.session_state.admin_settings['min_percentage_type_a']
     
     st.markdown("<br>", unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
-    for col, val, label in [(m1, u_count, "Usuarios"), (m2, f"{p_total:,}", "Puntos Totales"), (m3, f"{st.session_state.admin_settings['min_percentage_type_a']}%", "Mín. Tecnología")]:
+    for col, val, label, icon in [
+        (m1, u_count, "Usuarios", "👥"),
+        (m2, f"{p_total:,}", "Puntos Totales", "💰"),
+        (m3, f"{pct}%", "Mín. Tecnología", "⚙️")
+    ]:
         with col:
             st.markdown(f'''
-                <div class="magic-card" style="padding: 24px; text-align: center; border: 1px solid #f0f0f0;">
-                    <div style="font-size: 2.2rem; font-weight: 800; color: var(--primary);">{val}</div>
-                    <div style="color: #888; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 5px;">{label}</div>
+                <div class="metric-card">
+                    <div style="font-size:1.8rem;margin-bottom:4px;">{icon}</div>
+                    <div style="font-size:2rem;font-weight:800;color:var(--primary);">{val}</div>
+                    <div style="color:#888;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">{label}</div>
                 </div>
             ''', unsafe_allow_html=True)
     
@@ -418,12 +504,24 @@ def view_admin_dashboard():
 
 def view_user_catalog():
     top_bar()
-    st.title("Catálogo de Premios")
     
-    search = st.text_input("🔍 Buscar...", placeholder="¿Qué estás buscando?")
-    t1, t2, t3 = st.tabs(["✨ Todos", "💻 Tecnología", "🎟️ Bonos"])
+    # --- Sticky cart summary bar ---
+    if st.session_state.cart:
+        ta, tb, tt = calcular_totales_carrito()
+        cc1, cc2, cc3 = st.columns([3, 2, 2])
+        with cc1:
+            st.markdown(f"<div style='background:rgba(248,167,27,0.1);border:1px solid rgba(248,167,27,0.3);border-radius:12px;padding:10px 18px;font-weight:700;color:#F8A71B;'>🛒 {len(st.session_state.cart)} producto(s) &nbsp;—&nbsp; {tt:,} pts</div>", unsafe_allow_html=True)
+        with cc3:
+            if st.button("Ver Carrito →", use_container_width=True, type="primary"):
+                st.session_state.navigation = "Carrito"
+                st.rerun()
+        st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     
-    cats = [None, "Tecnología (Tipo A)", "Bonos Digitales (Tipo B)"]
+    st.title("Cat\u00e1logo de Premios")
+    search = st.text_input("🔍 Buscar...", placeholder="\u00bfQu\u00e9 est\u00e1s buscando?")
+    t1, t2, t3 = st.tabs(["✨ Todos", "💻 Tecnolog\u00eda", "🏟\ufe0f Bonos"])
+    
+    cats = [None, "Tecnolog\u00eda (Tipo A)", "Bonos Digitales (Tipo B)"]
     for i, tab in enumerate([t1, t2, t3]):
         with tab:
             prods = st.session_state.products
@@ -435,21 +533,21 @@ def view_user_catalog():
             cols = st.columns(3)
             for idx, p in enumerate(prods):
                 with cols[idx % 3]:
+                    # Card body (static, no rotating) with inline price + add button
                     st.markdown(f"""
-                    <div class="magic-card" style="padding: 24px; margin-bottom: 20px;">
-                        <div style="font-size: 3rem; margin-bottom: 10px;">{p['icono']}</div>
+                    <div class="magic-card" style="padding:24px;margin-bottom:16px;">
+                        <div style="font-size:3rem;margin-bottom:10px;">{p['icono']}</div>
                         <div class="product-name">{p['nombre']}</div>
-                        <div class="product-description">{p.get('descripcion', 'Detalle no disponible.')}</div>
-                        <div class="product-price">{p['precio']:,} pts</div>
+                        <div class="product-description">{p.get('descripcion','Detalle no disponible.')}</div>
+                        <div class="product-add-row">
+                            <div class="product-price" style="margin:0;">{p['precio']:,} pts</div>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
-                    if st.button("Añadir →", key=f"add_{i}_{idx}"): add_to_cart(p)
-    
-    if st.session_state.cart:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button(f"VER CARRITO ({len(st.session_state.cart)}) 🛒", type="primary", use_container_width=True):
-            st.session_state.navigation = "Carrito"
-            st.rerun()
+                    if st.button("A\u00f1adir \u2192", key=f"add_{i}_{idx}", use_container_width=True):
+                        add_to_cart(p)
+                        st.rerun()
+
 
 def view_cart_checkout():
     top_bar()
@@ -561,14 +659,14 @@ def view_cart_checkout():
                 </div>
             ''', unsafe_allow_html=True)
             
-            # Simulated Card UI
-            st.markdown("<div style='background: white; padding: 25px; border-radius: 20px; border: 1px solid #eee; box-shadow: var(--shadow-md);'>", unsafe_allow_html=True)
-            st.text_input("Número de Tarjeta", value="4532 0123 4567 8901")
-            pc1, pc2 = st.columns(2)
-            with pc1: st.text_input("Vencimiento", value="12/28")
-            with pc2: st.text_input("CVV", value="123", type="password")
-            st.caption("🔐 Pago encriptado de punta a punta.")
-            st.markdown("</div><br>", unsafe_allow_html=True)
+            # Credit card UI using native container (no div wrappers that create floating boxes)
+            with st.container(border=True):
+                st.text_input("Número de Tarjeta", value="4532 0123 4567 8901")
+                pc1, pc2 = st.columns(2)
+                with pc1: st.text_input("Vencimiento", value="12/28")
+                with pc2: st.text_input("CVV", value="123", type="password")
+                st.caption("🔐 Pago encriptado de punta a punta.")
+            st.markdown("<br>", unsafe_allow_html=True)
         else:
             st.success("✅ Orden cubierta totalmente con puntos.")
             st.markdown("<br>", unsafe_allow_html=True)
