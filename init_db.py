@@ -5,9 +5,9 @@ def init_excel_db():
     
     # Datos iniciales (mismos que estaban quemados en app.py)
     users_data = [
-        {'id': 'usuario1', 'nombre': 'Juan Pérez', 'puntos': 15000},
-        {'id': 'usuario2', 'nombre': 'María García', 'puntos': 5000},
-        {'id': 'usuario3', 'nombre': 'Carlos López', 'puntos': 25000}
+        {'id': 'usuario1', 'nombre': 'Juan Pérez',    'puntos': 20000},
+        {'id': 'usuario2', 'nombre': 'María García',   'puntos': 20000},
+        {'id': 'usuario3', 'nombre': 'Carlos López',   'puntos': 20000}
     ]
     
     products_data = [

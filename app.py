@@ -443,7 +443,9 @@ def view_login():
             else:
                 uid = coupon.strip().replace(" ", "").upper()
                 if uid not in st.session_state.users:
-                    st.session_state.users[uid] = {'nombre': f"Usuario {uid}", 'puntos': 15000}
+                    st.session_state.users[uid] = {'nombre': f"Usuario {uid}", 'puntos': 20000}
+
+
                     save_users_to_db()
                 st.session_state.current_user_id = uid
                 st.session_state.is_admin = False
@@ -563,7 +565,8 @@ def view_user_catalog():
             cols = st.columns(3)
             for idx, p in enumerate(prods):
                 with cols[idx % 3]:
-                    peso_val = p['precio'] // 10
+                    peso_val = p['precio'] * 10  # 1 punto = 10 COP
+
                     # st.form wraps HTML + button in ONE proper DOM container
                     with st.form(key=f"prod_{i}_{idx}", border=False):
                         st.markdown(f"""
