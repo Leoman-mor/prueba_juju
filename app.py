@@ -610,23 +610,21 @@ def view_cart_checkout():
         with c1:
             st.markdown("### 🔍 Revisa tu selección")
             for idx, item in enumerate(st.session_state.cart):
-                # Using columns for the item and the remove button to avoid manual div breaking
-                with st.container():
-                    st.markdown(f"""
-                    <div class="cart-item">
-                        <div style="font-size: 2.2rem;">{item['icono']}</div>
-                        <div style="flex-grow: 1;">
-                            <div class="product-name" style="margin:0; font-size:1.15rem;">{item['nombre']}</div>
-                            <div style="color:#888; font-size:0.85rem;">{item['tipo']}</div>
-                        </div>
-                        <div style="color:var(--primary); font-weight:800; font-size:1.2rem; margin-right:15px;">{item['precio']:,} pts</div>
+                tipo_label = "Tecnolog\u00eda" if "Tipo A" in str(item.get('tipo','')) else "Bono Digital"
+                st.markdown(f"""
+                <div class="cart-item">
+                    <div style="font-size: 2.2rem;">{item['icono']}</div>
+                    <div style="flex-grow: 1;">
+                        <div class="product-name" style="margin:0; font-size:1.15rem;">{item['nombre']}</div>
+                        <div style="color:#888; font-size:0.85rem;">{tipo_label}</div>
                     </div>
-                    """, unsafe_allow_html=True)
-                    # Use unique column logic for the button interaction
-                    bt_c1, bt_c2 = st.columns([10, 2])
-                    with bt_c2:
-                        if st.button("Eliminar", key=f"del_{idx}"):
-                            remove_from_cart(idx); st.rerun()
+                    <div style="color:var(--primary); font-weight:800; font-size:1.2rem; margin-right:15px;">{item['precio']:,} pts</div>
+                </div>
+                """, unsafe_allow_html=True)
+                bt_c1, bt_c2 = st.columns([10, 2])
+                with bt_c2:
+                    if st.button("Eliminar", key=f"del_{idx}"):
+                        remove_from_cart(idx); st.rerun()
             
             st.markdown("<br>", unsafe_allow_html=True)
             col_actions = st.columns([1, 1])
@@ -641,14 +639,14 @@ def view_cart_checkout():
             min_pct = st.session_state.admin_settings['min_percentage_type_a'] / 100.0
             u_pts = get_current_user()['puntos']
             
-            # Consolidated summary card
+            # Consolidated summary card — no internal type codes
             st.markdown(f"""
             <div class="checkout-card">
                 <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:#666;">
-                    <span>Tecnología (Tipo A)</span><span>{ta:,} pts</span>
+                    <span>Tecnología</span><span>{ta:,} pts</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:#666;">
-                    <span>Bonos (Tipo B)</span><span>{tb:,} pts</span>
+                    <span>Bonos Digitales</span><span>{tb:,} pts</span>
                 </div>
                 <div class="summary-total" style="display:flex; justify-content:space-between; border-top: 1px dashed #eee; padding-top:15px; margin-top:15px;">
                     <span style="font-size:1.4rem;">Total</span><span style="font-size:1.4rem;">{tt:,} pts</span>
@@ -687,13 +685,17 @@ def view_cart_checkout():
         st.markdown('<div style="max-width: 500px; margin: auto;">', unsafe_allow_html=True)
         st.subheader("💳 Pago Seguro")
         ta, tb, tt = calcular_totales_carrito()
-        exc = ta - st.session_state.get('final_pts_a', 0)
+        final_pts_a = st.session_state.get('final_pts_a', 0)
+        # exc = surplus pts for tech that user does NOT cover with points
+        exc_pts = ta - final_pts_a   # points not covered
+        exc_cop = exc_pts * 10       # 1 punto = $10 COP
         
-        if exc > 0:
+        if exc_pts > 0:
             st.markdown(f'''
                 <div style="background: #FFF9E6; padding: 20px; border-radius: 12px; border: 1px solid #FFEBB3; margin-bottom: 25px;">
-                    <div style="color: #856404; font-weight: 700; font-size: 0.9rem;">EXCEDENTE A PAGAR</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: #1a1a1a;">${exc:,.0f} COP</div>
+                    <div style="color: #856404; font-weight: 700; font-size: 0.9rem;">EXCEDENTE A PAGAR EN COP</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: #1a1a1a;">${exc_cop:,.0f} COP</div>
+                    <div style="color:#aaa; font-size:0.82rem; margin-top:4px;">{exc_pts:,} pts × $10 = ${exc_cop:,.0f} COP</div>
                 </div>
             ''', unsafe_allow_html=True)
             
