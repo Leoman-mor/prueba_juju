@@ -243,29 +243,18 @@ def load_css():
                 padding: 12px 15px !important; font-weight: 500 !important;
             }
 
-            /* --- LOGIN FORM CARD --- */
-            /* Scoped only to the login form, not to payment form */
-            [data-testid="stForm"].login-form-card {
-                position: relative;
-                overflow: hidden;
+            /* --- LOGIN CARD via st.container(border=True) --- */
+            /* This is the real Streamlit bordered container element */
+            [data-testid="stVerticalBlockBorderWrapper"] {
+                position: relative !important;
+                overflow: hidden !important;
                 border-radius: 20px !important;
-                border: 1px solid rgba(248, 167, 27, 0.3) !important;
-                box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
+                border: none !important;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.10) !important;
                 background: white !important;
-                padding: 10px !important;
+                padding: 20px !important;
             }
-            /* Since we can't add class to stForm, scope by position/parent */
-            /* We use a wrapper div instead */
-            .login-card-wrapper {
-                position: relative;
-                overflow: hidden;
-                border-radius: 20px;
-                border: 1px solid rgba(248, 167, 27, 0.3);
-                box-shadow: 0 20px 60px rgba(0,0,0,0.12);
-                background: white;
-                padding: 30px;
-            }
-            .login-card-wrapper::before {
+            [data-testid="stVerticalBlockBorderWrapper"]::before {
                 content: '';
                 position: absolute;
                 top: 50%; left: 50%;
@@ -282,7 +271,7 @@ def load_css():
                 animation: beam-travel 4s linear infinite;
                 z-index: 0;
             }
-            .login-card-wrapper::after {
+            [data-testid="stVerticalBlockBorderWrapper"]::after {
                 content: '';
                 position: absolute;
                 inset: 3px;
@@ -290,7 +279,7 @@ def load_css():
                 border-radius: 18px;
                 z-index: 1;
             }
-            .login-card-wrapper > * {
+            [data-testid="stVerticalBlockBorderWrapper"] > div {
                 position: relative;
                 z-index: 2;
             }
@@ -395,18 +384,19 @@ def view_login():
     
     _, col, _ = st.columns([1, 1.2, 1])
     with col:
-        st.markdown("<div style='height:80px'></div>", unsafe_allow_html=True)
-        st.markdown('<div class="login-card-wrapper">', unsafe_allow_html=True)
-        show_logo(centered=False)
-        st.markdown(
-            "<h3 style='margin:16px 0 4px; text-align:center;'>Bienvenido</h3>"
-            "<p style='color:#888; font-size:0.92rem; margin-bottom:8px; text-align:center;'>"
-            "Ingresa tu cup\u00f3n para acceder al portal.</p>",
-            unsafe_allow_html=True
-        )
-        coupon = st.text_input("Cup\u00f3n", placeholder="X-XXXX-XXXX", label_visibility="collapsed")
-        submitted = st.button("ACCEDER \u2192", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<div style='height:60px'></div>", unsafe_allow_html=True)
+        # st.container(border=True) is the ONLY reliable way to wrap native
+        # Streamlit widgets with a styled border. CSS targets stVerticalBlockBorderWrapper.
+        with st.container(border=True):
+            show_logo(centered=True)
+            st.markdown(
+                "<h3 style='margin:16px 0 4px; text-align:center;'>Bienvenido</h3>"
+                "<p style='color:#888; font-size:0.92rem; margin-bottom:8px; text-align:center;'>"
+                "Ingresa tu cup\u00f3n para acceder al portal.</p>",
+                unsafe_allow_html=True
+            )
+            coupon = st.text_input("Cup\u00f3n", placeholder="X-XXXX-XXXX", label_visibility="collapsed")
+            submitted = st.button("ACCEDER \u2192", use_container_width=True)
         
         if submitted:
             if not coupon:
