@@ -20,8 +20,13 @@ def init_excel_db():
     ]
     
     config_data = [
-        {'key': 'min_percentage_type_a', 'value': 50}
+        {'key': 'min_percentage_type_a', 'value': 50},
+        {'key': 'mixed_attempts', 'value': 24},
+        {'key': 'mixed_success', 'value': 18},
+        {'key': 'recovery_attempts', 'value': 12},
+        {'key': 'recovery_blocks', 'value': 1}
     ]
+
     
     # Crear DataFrames
     df_users = pd.DataFrame(users_data)

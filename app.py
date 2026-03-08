@@ -530,7 +530,44 @@ def view_admin_dashboard():
                 st.toast("Configuración actualizada")
             st.divider()
             st.caption("Regla Bonos: 100% Puntos (Fijo)")
+    
+    st.markdown("### 📈 KPIs de Éxito")
+    k1, k2 = st.columns(2)
+    
+    # KPI 1: Tasa de conversión Pago Mixto
+    m_att = st.session_state.admin_settings.get('mixed_attempts', 1)
+    m_suc = st.session_state.admin_settings.get('mixed_success', 0)
+    conv_rate = (m_suc / m_att * 100) if m_att > 0 else 0
+    
+    # KPI 2: Tasa de error transaccional
+    r_att = st.session_state.admin_settings.get('recovery_attempts', 1)
+    r_blk = st.session_state.admin_settings.get('recovery_blocks', 0)
+    err_rate = (r_blk / r_att * 100) if r_att > 0 else 0
+    
+    with k1:
+        with st.container(border=True):
+            st.markdown(f"""
+                <div style="text-align:center;">
+                    <div style="color:#1B5E20; font-weight:700; font-size:0.85rem; text-transform:uppercase;">Tasa de Conversión Exitosa</div>
+                    <div style="font-size:2.2rem; font-weight:800; color:#2E7D32; margin:10px 0;">{conv_rate:.1f}%</div>
+                    <div style="color:#888; font-size:0.75rem;">Relación de pagos mixtos efectivos vs intentados.</div>
+                    <div style="margin-top:8px; color:#aaa; font-size:0.7rem;">({m_suc} éxitos / {m_att} intentos)</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+    with k2:
+        with st.container(border=True):
+            st.markdown(f"""
+                <div style="text-align:center;">
+                    <div style="color:#B71C1C; font-weight:700; font-size:0.85rem; text-transform:uppercase;">Tasa de Error Transaccional</div>
+                    <div style="font-size:2.2rem; font-weight:800; color:#C62828; margin:10px 0;">{err_rate:.1f}%</div>
+                    <div style="color:#888; font-size:0.75rem;">Bloqueos en recuperación de puntos vs total ejecutado.</div>
+                    <div style="margin-top:8px; color:#aaa; font-size:0.7rem;">({r_blk} bloqueos / {r_att} intentos)</div>
+                </div>
+            """, unsafe_allow_html=True)
+    
     st.markdown('</div>', unsafe_allow_html=True)
+
 
 def view_user_catalog():
     top_bar()
@@ -705,7 +742,13 @@ def view_cart_checkout():
                     st.session_state.final_pts_a = 0
                 
                 if st.button("CONTINUAR →", type="primary", use_container_width=True):
+                    # Tracking KPI: Mixed payment attempt if user is NOT covering 100% with points
+                    if (ta - st.session_state.final_pts_a) > 0:
+                        st.session_state.admin_settings['mixed_attempts'] = st.session_state.admin_settings.get('mixed_attempts', 0) + 1
+                        save_config_to_db()
+                    
                     st.session_state.checkout_step = 1; st.rerun()
+
 
 
     # STEP 1: CONTACT
@@ -755,8 +798,17 @@ def view_cart_checkout():
         if st.button("CONFIRMAR ORDEN", use_container_width=True, type="primary"):
             with st.spinner("Procesando pago seguro..."):
                 time.sleep(2)
+                # Tracking KPI: Mixed payment success if there was an excess paid in COP
+                if (ta - final_pts_a) > 0:
+                    st.session_state.admin_settings['mixed_success'] = st.session_state.admin_settings.get('mixed_success', 0) + 1
+                
+                # Tracking KPI Recovery: Increment recovery attempts on completion
+                st.session_state.admin_settings['recovery_attempts'] = st.session_state.admin_settings.get('recovery_attempts', 0) + 1
+                
                 st.session_state.users[st.session_state.current_user_id]['puntos'] -= (tb + st.session_state.get('final_pts_a', 0))
+                save_config_to_db()
                 save_users_to_db(); clear_cart(); st.session_state.checkout_step = 3; st.rerun()
+
         
         if st.button("Atrás"): st.session_state.checkout_step = 1; st.rerun()
         st.markdown('</div>', unsafe_allow_html=True)

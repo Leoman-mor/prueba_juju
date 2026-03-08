@@ -140,6 +140,10 @@ Accesible con cupón `admin`:
 - Estadísticas globales: usuarios activos y puntos totales del sistema.
 - Listado completo de usuarios con saldos.
 - Control del **porcentaje mínimo de redención en Tecnología** (deslizador 0–100%).
+- **KPIs de Éxito y Conversión**: 
+    - **Tasa de Conversión (Pago Mixto)**: Mide la efectividad de la redención cuando se requiere pago en pesos.
+    - **Tasa de Error Transaccional**: Rastrea bloqueos en los procesos de recuperación de puntos.
+
 
 ---
 
