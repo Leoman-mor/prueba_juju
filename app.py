@@ -189,13 +189,15 @@ def load_css():
             }
 
             /* --- MAGIC UI: SHINY BUTTON --- */
-            .stButton > button {
+            .stButton > button, [data-testid="stFormSubmitButton"] > button {
                 position: relative;
                 background: var(--primary) !important;
+                color: white !important;
                 overflow: hidden !important;
                 border: none !important;
             }
-            .stButton > button::after {
+            .stButton > button::after, [data-testid="stFormSubmitButton"] > button::after {
+
                 content: '';
                 position: absolute;
                 top: -50%; left: -100%;
@@ -210,10 +212,11 @@ def load_css():
                 transition: 0s;
                 pointer-events: none;
             }
-            .stButton > button:hover::after {
+            .stButton > button:hover::after, [data-testid="stFormSubmitButton"] > button:hover::after {
                 left: 150%;
                 transition: 0.7s;
             }
+
             
             /* --- GLASSMORPHISM HEADER --- */
             .fixed-header {
@@ -535,8 +538,9 @@ def view_user_catalog():
     # --- Sticky cart summary bar ---
     if st.session_state.cart:
         ta, tb, tt = calcular_totales_carrito()
-        tt_cop = tt // 10  # 10 pts = $1 COP
+        tt_cop = tt * 10  # 1 punto = $10 COP
         cc1, cc2, cc3 = st.columns([3, 2, 2])
+
         with cc1:
             st.markdown(f"<div style='background:rgba(248,167,27,0.1);border:1px solid rgba(248,167,27,0.3);border-radius:12px;padding:10px 18px;font-weight:700;color:#F8A71B;'>🛒 {len(st.session_state.cart)} producto(s) &nbsp;—&nbsp; {tt:,} pts <span style='color:#aaa;font-weight:500;font-size:0.85rem;'>≈ ${tt_cop:,} COP</span></div>", unsafe_allow_html=True)
         with cc3:
@@ -565,9 +569,9 @@ def view_user_catalog():
             cols = st.columns(3)
             for idx, p in enumerate(prods):
                 with cols[idx % 3]:
-                    peso_val = p['precio'] * 10  # 1 punto = 10 COP
-
+                    peso_val = p['precio'] * 10  # 1 punto = $10 COP
                     # st.form wraps HTML + button in ONE proper DOM container
+
                     with st.form(key=f"prod_{i}_{idx}", border=False):
                         st.markdown(f"""
                         <div style="padding:8px;">
@@ -577,14 +581,16 @@ def view_user_catalog():
                             <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:12px;">
                                 <div>
                                     <div class="product-price" style="margin:0;">{p['precio']:,} pts</div>
-                                    <div style="color:#aaa;font-size:0.8rem;">${peso_val:,} COP</div>
+                                    <div style="color:#aaa;font-size:0.8rem;">≈ ${peso_val:,} COP</div>
                                 </div>
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
-                        if st.form_submit_button("A\u00f1adir \u2192", use_container_width=True):
+
+                        if st.form_submit_button("A\u00f1adir \u2192", use_container_width=True, type="primary"):
                             add_to_cart(p)
                             st.rerun()
+
 
 
 def view_cart_checkout():
@@ -610,21 +616,27 @@ def view_cart_checkout():
         with c1:
             st.markdown("### 🔍 Revisa tu selección")
             for idx, item in enumerate(st.session_state.cart):
-                tipo_label = "Tecnolog\u00eda" if "Tipo A" in str(item.get('tipo','')) else "Bono Digital"
-                st.markdown(f"""
-                <div class="cart-item">
-                    <div style="font-size: 2.2rem;">{item['icono']}</div>
-                    <div style="flex-grow: 1;">
-                        <div class="product-name" style="margin:0; font-size:1.15rem;">{item['nombre']}</div>
-                        <div style="color:#888; font-size:0.85rem;">{tipo_label}</div>
-                    </div>
-                    <div style="color:var(--primary); font-weight:800; font-size:1.2rem; margin-right:15px;">{item['precio']:,} pts</div>
-                </div>
-                """, unsafe_allow_html=True)
-                bt_c1, bt_c2 = st.columns([10, 2])
-                with bt_c2:
-                    if st.button("Eliminar", key=f"del_{idx}"):
-                        remove_from_cart(idx); st.rerun()
+                tipo_label = "Tecnolog\u00eda" if "Tipo A" in str(item.get('tipo', '')) else "Bono Digital"
+                # Use a container with border for each item to look like a card
+                with st.container(border=True):
+                    ic1, ic2 = st.columns([4, 1])
+                    with ic1:
+                        st.markdown(f"""
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <div style="font-size: 2.2rem;">{item['icono']}</div>
+                            <div>
+                                <div class="product-name" style="margin:0; font-size:1.15rem;">{item['nombre']}</div>
+                                <div style="color:#888; font-size:0.85rem;">{tipo_label}</div>
+                                <div style="color:var(--primary); font-weight:800; font-size:1.1rem;">{item['precio']:,} pts</div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with ic2:
+                        st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+                        if st.button("Eliminar", key=f"del_{idx}", type="secondary", use_container_width=True):
+                            remove_from_cart(idx)
+                            st.rerun()
+
             
             st.markdown("<br>", unsafe_allow_html=True)
             col_actions = st.columns([1, 1])
@@ -638,36 +650,63 @@ def view_cart_checkout():
             ta, tb, tt = calcular_totales_carrito()
             min_pct = st.session_state.admin_settings['min_percentage_type_a'] / 100.0
             u_pts = get_current_user()['puntos']
+            req_pts = tb + (ta * min_pct)
             
+            # Points currently selected (defaults to min if not selected)
+            if 'final_pts_a' not in st.session_state or st.session_state.final_pts_a < int(ta*min_pct):
+                st.session_state.final_pts_a = int(ta*min_pct)
+            
+            # THE KEY: The summary card below uses st.session_state.final_pts_a 
+            # so it updates when the slider (defined later in the same script run) 
+            # is moved by the user in the previous fragment of the same interaction.
+            pts_to_redeem = tb + st.session_state.final_pts_a
+
             # Consolidated summary card — no internal type codes
             st.markdown(f"""
             <div class="checkout-card">
                 <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:#666;">
-                    <span>Tecnología</span><span>{ta:,} pts</span>
+                    <span>Tecnología (Puntos a Redimir)</span><span>{st.session_state.final_pts_a:,} pts</span>
                 </div>
                 <div style="display:flex; justify-content:space-between; margin-bottom:12px; color:#666;">
                     <span>Bonos Digitales</span><span>{tb:,} pts</span>
                 </div>
                 <div class="summary-total" style="display:flex; justify-content:space-between; border-top: 1px dashed #eee; padding-top:15px; margin-top:15px;">
-                    <span style="font-size:1.4rem;">Total</span><span style="font-size:1.4rem;">{tt:,} pts</span>
+                    <span style="font-size:1.4rem;">Total a Redimir</span><span style="font-size:1.4rem; color:var(--primary);">{pts_to_redeem:,} pts</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            req_pts = tb + (ta * min_pct)
             
-            if u_pts < req_pts: 
-                st.error(f"Faltan {(req_pts-u_pts):,.0f} pts para redimir.")
+            if u_pts < req_pts:
+                missing = req_pts - u_pts
+                st.error(f"⚠️ Saldo insuficiente. Faltan {missing:,.0f} pts para redimir el mínimo requerido.")
+                st.info(f"Tu saldo: {u_pts:,} pts | Requerido (min): {req_pts:,.0f} pts")
             else:
                 st.success("✅ Puntos suficientes.")
                 if ta > 0: 
-                    st.session_state.final_pts_a = st.slider("Puntos para Tecnología", int(ta*min_pct), int(min(ta, u_pts-tb)), int(ta*min_pct))
+                    # Selection slider for points to use on tech
+                    # The slider's value is st.session_state.final_pts_a
+                    st.slider(
+                        "Ajustar puntos para Tecnología", 
+                        int(ta*min_pct), 
+                        int(min(ta, u_pts-tb)), 
+                        key="final_pts_a"
+                    )
+                    
+                    # Calculate surplus for the summary
+                    exc_pts = ta - st.session_state.final_pts_a
+                    exc_cop = exc_pts * 10
+                    if exc_cop > 0:
+                        st.warning(f"💳 Excedente a pagar: **${exc_cop:,} COP**")
+                    else:
+                        st.info("✨ Redención 100% con puntos.")
                 else: 
                     st.session_state.final_pts_a = 0
                 
                 if st.button("CONTINUAR →", type="primary", use_container_width=True):
                     st.session_state.checkout_step = 1; st.rerun()
+
 
     # STEP 1: CONTACT
     elif st.session_state.checkout_step == 1:
@@ -695,9 +734,11 @@ def view_cart_checkout():
                 <div style="background: #FFF9E6; padding: 20px; border-radius: 12px; border: 1px solid #FFEBB3; margin-bottom: 25px;">
                     <div style="color: #856404; font-weight: 700; font-size: 0.9rem;">EXCEDENTE A PAGAR EN COP</div>
                     <div style="font-size: 1.8rem; font-weight: 800; color: #1a1a1a;">${exc_cop:,.0f} COP</div>
-                    <div style="color:#aaa; font-size:0.82rem; margin-top:4px;">{exc_pts:,} pts × $10 = ${exc_cop:,.0f} COP</div>
+                    <div style="color:#aaa; font-size:0.82rem; margin-top:4px;">{exc_pts:,} pts × 10 = ${exc_cop:,.0f} COP</div>
                 </div>
             ''', unsafe_allow_html=True)
+
+
             
             # Credit card UI using native container (no div wrappers that create floating boxes)
             with st.container(border=True):

@@ -33,6 +33,7 @@ Disponible en `http://localhost:8501`
 
 Ejemplo: 50,000 pts → **$500,000 COP**
 
+
 ---
 
 ## 🛒 Lógica del carrito — Descripción detallada
@@ -41,7 +42,7 @@ Este es el núcleo del sistema. El carrito maneja **dos tipos de productos con r
 
 ### Diagrama de implementación
 
-![Diagrama del carrito](inspiraci%C3%B3n/diagrama%20implementaci%C3%B3n%20carrito.png)
+![Diagrama del carrito](inspiraci%C3%B3n/diagrama%20implementacio%CC%81n%20carrito.png)
 
 ---
 
@@ -49,7 +50,8 @@ Este es el núcleo del sistema. El carrito maneja **dos tipos de productos con r
 
 | Tipo | Código interno | Regla de pago |
 |------|----------------|---------------|
-| **Tecnología** | `Tipo A (Tecnología)` | Se puede pagar con puntos entre un **mínimo** y el **100%** del precio. El excedente (puntos faltantes) se cobra en **COP** a la tasa 1 pt = $10. |
+| **Tecnología** | `Tipo A (Tecnología)` | Se puede pagar con puntos entre un **mínimo** y el **100%** del precio. El excedente (puntos faltantes) se cobra en **COP** a la tasa 1 pt = $10 COP. |
+
 | **Bonos Digitales** | `Tipo B (Bonos Digitales)` | Siempre se pagan **100% en puntos**. Sin pago adicional. |
 
 El mínimo de puntos para Tecnología lo configura el administrador (por defecto **50%**). Si se fija en 70%, el usuario debe cubrir al menos el 70% del precio en puntos; el resto puede pagarlo en COP.
@@ -65,7 +67,7 @@ total_tipo_b = suma de precios de productos Bonos en el carrito
 puntos_minimos_requeridos = total_tipo_b + (total_tipo_a × min_porcentaje)
 ```
 
-Si `puntos_usuario < puntos_minimos_requeridos` → el usuario **no puede proceder** al checkout y se muestra el déficit exacto.
+Si `puntos_usuario < puntos_minimos_requeridos` → el usuario **no puede proceder** al checkout y se muestra el déficit exacto en puntos.
 
 ---
 
@@ -81,6 +83,7 @@ Si `puntos_usuario < puntos_minimos_requeridos` → el usuario **no puede proced
 - Lista todos los ítems con su tipo y precio.
 - Calcula `total_a`, `total_b` y `total_general`.
 - Muestra el resumen de puntos **disponibles vs. requeridos**.
+- Muestra el **Excedente a pagar en COP** basado en la selección del slider (si aplica).
 - Si hay puntos suficientes, aparece un **slider** para elegir cuántos puntos destinar a Tecnología:
   - Mínimo: `total_a × min_porcentaje`
   - Máximo: `min(total_a, puntos_disponibles − total_b)`
@@ -99,6 +102,7 @@ Calcula el excedente a pagar en COP:
 excedente_pts = total_a - final_pts_a
 monto_cop     = excedente_pts * 10   # 1 pt = $10 COP
 ```
+
 
 - Si `excedente > 0`: muestra pasarela simulada con datos prediligenciados:
   - Tarjeta: `4532 0123 4567 8901` · Vencimiento: `12/28` · CVV: `•••`
